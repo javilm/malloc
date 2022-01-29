@@ -472,11 +472,6 @@ get_segment:	and	000000011b	; Ensure that A is 0-3
 		call	GET_PH
 		ret
 
-get_segment_p1:
-get_segment_p2:
-get_segment_p3:
-		ret
-
 ; get_exptbl - Read the EXPTBL entry for a slot
 ; Input:	A	Slot number (0-3)
 ; Output:	A	EXPTBL entry for that slot
@@ -507,4 +502,3 @@ get_slttbl:	ld	hl,SLTTBL
 mpointer	equ	00080h	; Use the command line buffer in the system
 				; scratch area as temporary space to build the
 				; mapped pointer
-
