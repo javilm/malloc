@@ -6,6 +6,3 @@
 
 main:		ret
 
-
-main:		ret
-
