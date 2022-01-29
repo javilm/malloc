@@ -166,10 +166,25 @@ init_used:	ret
 ; malloc_init_p[0123] - Add memory blocks in pages 0-3 to the list of free
 ; blocks
 
-malloc_init_p0:
-malloc_init_p1:
-malloc_init_p2:
-malloc_init_p3:
+malloc_init_p0:	call	make_entry_p0
+		; call	add_free	; XXX this needs to be implemented
+
+		; Prepare the next block
+		ld	hl,16384
+malloc_init_p1:	call	make_entry_p1
+		; call	add_free	; XXX to be implemented
+
+		; Prepare the next block
+		ld	hl,16384
+malloc_init_p2:	call	make_entry_p2
+		; call	add_free	; XXX to be implemented
+
+		; Prepare the next block
+malloc_init_p3:	; XXX Here we need to find the size of the final block
+		; and leave the value in HL before calling make_entry_p3
+		call	make_entry_p3
+		; call	add_free	; XXX to be implemented
+
 		ret
 
 ; make_entry_p[0123] - Construct a list entry describing a block of free memory
@@ -212,23 +227,10 @@ make_entry_p0:	; 1) Save the block size
 		ld	hl,runend
 		ld	(mpointer+2),a
 
-		; 5) Add the mapped pointer to the free block to malloc's list
-		; of free blocks
-; XXX To be completed later
-;		ld	hl,mpointer	; List entry to add
-;		ld	de,list_free	; Pointer to the list structure
-;		call	list_add	; Routine to add an entry to the list
+		ret
 
-		; If the entry point to this code thread is make_entry_p0 then
-		; this means that the next memory blocks (pages 1 and 2) are
-		; both free, so the size for the next block is 16kb.
-		ld	hl,16384
-
-make_entry_p1:	; 1) Save the block size
-		ld	(mpointer+4),hl	; Save the block size
-
-		; 2) Save the slot address for page 1
-		call	save_sltadd_p1
+make_entry_p1:	ld	(mpointer+4),hl		; Save the block size
+		call	save_sltadd_p1		; Save the slot address
 
 		; 3) Save the memory mapper segment number for page 1
 		ld	a,1
@@ -246,14 +248,40 @@ make_entry_p1:	; 1) Save the block size
 		ld	h,a
 		ld	(mpointer+2),a
 
-		; 5) Add the entry to the list
-		; XXX see pseudocode above
+		ret
 
-		; Prepare the size of the next block
-		ld	hl,16384
+make_entry_p2:	ld	(mpointer+4),hl		; Save the block size
+		call	save_sltadd_p2		; Save the slot address
 
-make_entry_p2:
-make_entry_p3:
+		; 3) Save the memory mapper segment number for page 2
+		ld	a,2
+		call	get_segment
+		ld	(mpointer+1),a
+
+		; 4) Save the offset to the start of the block (runend). Ensure
+		; that the two most significant bits of the 16-bit address are 
+		; set to 0.
+		ld	hl,runend
+		ld	a,h
+		and	000111111b
+		ld	h,a
+		ld	(mpointer+2),a
+
+		ret
+		
+make_entry_p3:	ld	(mpointer+4),hl	; Save the block size
+		call	save_sltadd_p3	; Save the slot address
+
+		ld	a,3		; Save the mapper segment number
+		call	get_segment
+		ld	(mpointer+1),a
+
+		ld	hl,runend	; Save the offset to the block start
+		ld	a,h
+		and	000111111b
+		ld	h,a
+		ld	(mpointer+2),a
+
 		ret
 
 ; save_sltadd_p[0123] - Get the slot address for the mapper segment active in
@@ -348,11 +376,88 @@ save_sltadd_p1:	; Read main slot selection register and keep value for page 1
 		ld	(hl),a
 
 		ret
-		
 
+save_sltadd_p2:	; Read main slot selection register and keep value for page 2
+		mainrom	RSLREG
+		and	000110000b
+		rrca
+		rrca
+		rrca
+		rrca
 
-save_sltadd_p2:
-save_sltadd_p3:
+		; Check whether the slot is expanded
+		call	get_exptbl
+		and	010000000b
+		or	c
+
+		; Save the partial slot address
+		ld	(mpointer),a
+
+		; Return if the slot is expanded, else continue
+		and	010000000b
+		ret	z
+
+		; Compute expanded slot number for page 2
+
+		; Get the main slot number from the partial slot address
+		ld	a,(mpointer)
+		and	000000011b
+
+		; Read the entry in SLTTBL for this slot and keep the entry
+		; for page 2
+		call	get_slttbl
+		and	000110000b
+		rlca			; Ensure the expanded slot number is in
+		rlca			; bits 3-4
+
+		; OR the value with the current value of the slot address byte
+		; and store the result
+		ld	hl,mpointer
+		or	(hl)
+		ld	(hl),a
+
+		ret
+
+save_sltadd_p3:	; Read main slot selection register and keep value for page 3
+		mainrom	RSLREG
+		and	011000000b
+		rlca
+		rlca
+
+		; Check whether the slot is expanded
+		call	get_exptbl
+		and	010000000b
+		or	c
+
+		; Save the partial slot address
+		ld	(mpointer),a
+
+		; Return if the slot is expanded, else continue
+		and	010000000b
+		ret	z
+
+		; Compute expanded slot number for page 3
+
+		; Get the main slot number from the partial slot address
+		ld	a,(mpointer)
+		and	000000011b
+
+		; Read the entry in SLTTBL for this slot and keep the data for
+		; page 3
+		call	get_slttbl
+		and	011000000b
+		; Ensure the expanded slot number is in bits 3-4
+		rlca
+		rlca
+		rlca
+		rlca
+
+		; OR the value with the current value of the slot address byte
+		; and store the result
+		ld	hl,mpointer
+		or	(hl)
+		ld	(hl),a
+
 		ret
 
 ; get_segment - Get the active memory mapper segment for pages 0-3
@@ -375,6 +480,7 @@ get_segment_p3:
 ; get_exptbl - Read the EXPTBL entry for a slot
 ; Input:	A	Slot number (0-3)
 ; Output:	A	EXPTBL entry for that slot
+;		C	Original value of A when this routine was called
 ; Modifies:	AF, HL, BC
 ;
 get_exptbl:	ld	hl,EXPTBL
@@ -388,6 +494,7 @@ get_exptbl:	ld	hl,EXPTBL
 ; Input:	A	Slot number (0-3)
 ; Output:	A	Copy of the expanded slot selection register for that
 ;			slot
+;		C	Original value of A when this routine was called
 ; Modifies:	AF, HL, BC
 ;
 get_slttbl:	ld	hl,SLTTBL
