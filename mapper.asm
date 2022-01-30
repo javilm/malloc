@@ -1,9 +1,9 @@
 ; mapper.as : Mapper support routines
 
 		; Routines
-		global	map_init	; Initialize the routines
-		global	map_get_pslot	; Get the primary mapper slot address			global	map_get_tabl	; Get the address of the mapper
-					; variables table
+		global	mapper_init		; Initialize the routines
+		global	mapper_get_pslot	; Get main mapper slot address			global	mapper_get_table	; Get the address of the mapper
+						; variables table
 
 		; Copy of the jump table to MSX-DOS2 mapper support routines
 		global	ALL_SEG
@@ -30,7 +30,7 @@ EXTBIO		equ	0ffcah
 
 		cseg
 
-map_init:	; Check for extended BIOS supoprt
+mapper_init:	; Check for extended BIOS supoprt
 		ld	a,(HOKVLD)
 		and	000000001b
 		jr	nz,map_init.1	; Z:  No extended BIOS detected
@@ -70,7 +70,8 @@ map_init.1:	; Get address of the mapper variables table via a call to
 ; Output:	A	Slot address of the primary mapper
 ; Notes:	Mapper support needs to be initialized by calling map_init.
 ;
-map_get_pslot:	ld	a,(pri_mapp_slt)
+mapper_get_pslot:
+		ld	a,(pri_mapp_slt)
 		ret
 
 ; map_get_table - Returns the address of the mapper variables table.
@@ -78,7 +79,8 @@ map_get_pslot:	ld	a,(pri_mapp_slt)
 ; Output:	HL	Address of the mapper variables table.
 ; Notes:	Mapper support needs to be initialized by calling map_init.
 ;
-map_get_table:	ld	hl,(p_mapper_tbl)
+mapper_get_table:
+		ld	hl,(p_mapper_tbl)
 		ret
 
 ; Copy of the jump table to the mapper support routines

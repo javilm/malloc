@@ -1,7 +1,7 @@
 ; Mapper support
-external	map_init	; Initialize the mapper routines
-external	map_get_pslot	; Get the primary mapepr slot address
-external	map_get_table	; Get the address of the mapper variables table
+external	mapper_init	; Initialize the mapper routines
+external	mapper_get_pslot	; Get primary mapper slot address
+external	mapper_get_table	; Get address of mapper variables table
 
 ; Copy of the MSX-DOS2 mapper support routines
 external	ALL_SEG
@@ -20,4 +20,3 @@ external	PUT_P2
 external	GET_P2
 external	PUT_P3
 external	GET_P3
-
