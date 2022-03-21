@@ -1,8 +1,11 @@
+		; Include the runtime's public symbols
+		include	runtime.inc
+
 		.z80
 
 		cseg
 
-		global	main
+		public	main
 
 main:		ret
 

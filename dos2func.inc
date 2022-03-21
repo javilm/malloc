@@ -99,4 +99,3 @@ _DSKCHK		equ	06eh	; Get/set disk check status		  E
 _DOSVER		equ	06fh	; Get MSX-DOS version number		  E
 _REDIR		equ	070h	; Get/set redirection status		  E
 
-

@@ -8,7 +8,7 @@
 
 		cseg
 
-		global	runend
+		public	runend
 
 runend:
 

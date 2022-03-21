@@ -14,8 +14,8 @@
 ; empty, and it requests and frees segments on the fly when they are needed or
 ; when they're not in use anymore.
 
-		; Include mapper support symbols
-		include	mapper.inc
+		include	mapper.inc	; Mapper support routines
+		include	msxdos2.inc	; MSX-DOS2 support
 
 		; Public routines
 		public	malloc		; Allocates BC bytes
@@ -25,38 +25,25 @@
 		; External symbols
 		external runend		; Address immediately after the end
 					; of this program
+		external get_slttbl	; Read the SLTTBL entry for a slot
+		external get_exptbl	; Read the EXPTBL entry for a slot
 
 		.z80
-
-; MSXDOS.SYS entry point
-BDOS		equ	00005h
-
-; MSX-DOS2 inter-slot calls
-CALSLT		equ	0001ch	; Call address in the specified slot
-ENASLT		equ	00024h	; Enable the specified slot
-
-; MAIN ROM routines
-RSLREG		equ	00138h	; Read slot selection register
 
 ; System variables
 EXPTBL		equ	0fcc1h	; [4] MAIN ROM slot and expanded slot table
 SLTTBL		equ	0fcc5h	; [4] Copy of expanded slot selection registers
 
-; MACRO: Execute a MAIN ROM routine (destroys IX and IY)
-; See MSX Datapack Volume 2, page 15
-mainrom		macro	address
-		ld	iy,(EXPTBL-1)	; Slot address of MAIN ROM in IY MSB
-		ld	ix,address	; Address to call in the MAIN ROM
-		call	CALSLT
-		endm
-
-; MACRO: Execute an MSX-DOS(2) function call
-system		macro	func
-		ld	c,func
-		call	BDOS
-		endm
-
-		cseg
+; Use the command line buffer in the system scratch area as a temporary space
+; to build mapped pointers.
+;
+; Format of a mapped pointer:
+;
+; Byte 0: Slot address of the memory mapper
+; Byte 1: Segment number inside the memory mapper
+; Bytes 2-3: Memory address relative to the start of the segment (0-3fffh)
+;
+mpointer	equ	00080h
 
 ; ***********************
 ; *** PUBLIC ROUTINES ***
@@ -71,10 +58,14 @@ system		macro	func
 ;			doesn't hold meaningful value.
 ; Modifies:	AF, BC, HL
 ;
+		cseg
+
 malloc:		ret
 
 ; mfree - Free a memory block pointed by IX
 ;
+		cseg
+
 mfree:		ret
 
 ; malloc_init - Initialize malloc routines
@@ -114,7 +105,7 @@ malloc_init:	call	save_newtpa	; Compute new TPA value
 
 		; If we reach this point, the program ends in page 3
 		jp	malloc_init_p3
- 
+
 		dseg
 
 newtpa:		defs	2	; Top of the TPA minus STACKBUF bytes to let
@@ -296,7 +287,7 @@ make_entry_p3:	ld	(mpointer+4),hl	; Save the block size
 ;		slot address for the page.
 
 save_sltadd_p0:	; Read main slot selection register and keep value for page 0
-		mainrom	RSLREG
+		in	a,(0a8h)
 		and	000000011b
 
 		; Check whether the slot is expanded
@@ -340,7 +331,7 @@ save_sltadd_p0:	; Read main slot selection register and keep value for page 0
 		ret
 
 save_sltadd_p1:	; Read main slot selection register and keep value for page 1
-		mainrom	RSLREG
+		in	a,(0a8h)
 		and	000001100b
 		rrca
 		rrca
@@ -378,7 +369,7 @@ save_sltadd_p1:	; Read main slot selection register and keep value for page 1
 		ret
 
 save_sltadd_p2:	; Read main slot selection register and keep value for page 2
-		mainrom	RSLREG
+		in	a,(0a8h)
 		and	000110000b
 		rrca
 		rrca
@@ -419,7 +410,7 @@ save_sltadd_p2:	; Read main slot selection register and keep value for page 2
 		ret
 
 save_sltadd_p3:	; Read main slot selection register and keep value for page 3
-		mainrom	RSLREG
+		in	a,(0a8h)
 		and	011000000b
 		rlca
 		rlca
@@ -471,11 +462,24 @@ get_segment:	and	000000011b	; Ensure that A is 0-3
 		ld	h,a
 		call	GET_PH
 		ret
+	ld	hl,mpointer
+		or	(hl)
+		ld	(hl),a
 
-; get_exptbl - Read the EXPTBL entry for a slot
-; Input:	A	Slot number (0-3)
-; Output:	A	EXPTBL entry for that slot
-;		C	Original value of A when this routine was called
+		ret
+
+; get_segment - Get the active memory mapper segment for pages 0-3
+; Input:	A	CPU memory page number (0-3)
+; Output:	A	Memory mapper segment number for that page (0-255)
+; Modifies:	AF, HL, BC
+;
+get_segment:	and	000000011b	; Ensure that A is 0-3
+		rrca			; Shift A so the page number is
+		rrca			; in bits 6-7
+		ld	h,a
+		call	GET_PH
+		ret
+	C	Original value of A when this routine was called
 ; Modifies:	AF, HL, BC
 ;
 get_exptbl:	ld	hl,EXPTBL
@@ -485,8 +489,7 @@ get_exptbl:	ld	hl,EXPTBL
 		ld	a,(hl)
 		ret
 
-; get_slttbl - Read the SLTTBL entry for an slot
-; Input:	A	Slot number (0-3)
+A	Slot number (0-3)
 ; Output:	A	Copy of the expanded slot selection register for that
 ;			slot
 ;		C	Original value of A when this routine was called
@@ -498,7 +501,9 @@ get_slttbl:	ld	hl,SLTTBL
 		add	hl,bc
 		ld	a,(hl)
 		ret
-
-mpointer	equ	00080h	; Use the command line buffer in the system
-				; scratch area as temporary space to build the
+build the
 				; mapped pointer
+temporary space to build the
+				; mapped pointer
+ped pointer
+

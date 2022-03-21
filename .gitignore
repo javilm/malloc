@@ -1,3 +1,5 @@
 *.rel
 *.sym
+test/
+tmp/
 

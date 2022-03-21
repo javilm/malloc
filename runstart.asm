@@ -13,16 +13,14 @@
 		org	00100h
 
 		external runend		; Address of the end of the program
-		external mapper_init	; Mapper support initialization
+		external map_init	; Mapper support initialization
 		external malloc_init	; Initialize malloc
 		external main		; Entry point to the program
 
 		cseg
 
-runstart:	call	mapper_init	; Initialize the mapper support
+runstart:	call	map_init	; Initialize the mapper support
 		call	malloc_init	; Initialize the malloc routine
 		jp	main
 
 		defb	"Runtime v0.1/20220126",13,10
-
-

@@ -1,7 +1,11 @@
 ; Mapper support
-external	mapper_init	; Initialize the mapper routines
-external	mapper_get_pslot	; Get primary mapper slot address
-external	mapper_get_table	; Get address of mapper variables table
+external	map_init	; Initialize the mapper routines
+external	map_g_pslot	; Get primary mapper slot address
+external	map_g_table	; Get address of mapper variables table
+external	map_p2		; Map the segment of a mapped pointer in
+				; the CPU's page 2
+external	map_fill	; Fill the slot address and segment number in
+				; a partial mpointer
 
 ; Copy of the MSX-DOS2 mapper support routines
 external	ALL_SEG
